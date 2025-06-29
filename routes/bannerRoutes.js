@@ -23,7 +23,7 @@ router.post("/", upload.single("file"), bannerController.uploadBanner);
 router.get("/", bannerController.getBanners);
 router.get("/:id", bannerController.getBannerById);
 router.delete("/:id", bannerController.deleteBanner);
-
+router.put("/:id", upload.single("file"), bannerController.updateBanner);
 // New route to disable a banner by id
 router.put("/:id", bannerController.disableBanner);
 

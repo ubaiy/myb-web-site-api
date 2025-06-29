@@ -132,3 +132,61 @@ exports.deleteBanner = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+exports.updateBanner = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, subtitle, buttonLabel, sequence, link } = req.body;
+    const file = req.file;
+
+    const banner = await Banner.findByPk(id);
+    if (!banner) {
+      if (file) fs.unlinkSync(file.path); // cleanup if uploaded
+      return res.status(404).json({ error: "Banner not found" });
+    }
+
+    // Prepare fields to update
+    const updatedFields = {
+      title: title ?? banner.title,
+      subtitle: subtitle ?? banner.subtitle,
+      buttonLabel: buttonLabel ?? banner.buttonLabel,
+      sequence: sequence ?? banner.sequence,
+      link: link ?? banner.link,
+    };
+
+    // If file is uploaded, validate type and update
+    if (file) {
+      const ext = path.extname(file.originalname).toLowerCase();
+      const type = [".jpg", ".jpeg", ".png", ".webp"].includes(ext)
+        ? "image"
+        : [".mp4", ".mov", ".avi", ".webm"].includes(ext)
+        ? "video"
+        : null;
+
+      if (!type) {
+        fs.unlinkSync(file.path);
+        return res.status(400).json({ error: "Unsupported file type" });
+      }
+
+      // Delete old file
+      if (banner.filePath && fs.existsSync(`.${banner.filePath}`)) {
+        fs.unlinkSync(`.${banner.filePath}`);
+      }
+
+      updatedFields.type = type;
+      updatedFields.filePath = `/uploads/${file.filename}`;
+    }
+
+    // Update banner
+    await banner.update(updatedFields);
+
+    res.json({
+      status: true,
+      data: banner,
+      message: "Banner updated successfully!",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
